@@ -1,1 +1,1 @@
-# Blind-Deblurring
+# Intrinsic Image Decomposition
