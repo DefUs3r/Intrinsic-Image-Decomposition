@@ -100,3 +100,38 @@ if __name__ == '__main__':
     print('Output:')
     print(('  r_filename:', r_filename))
     print(('  s_filename:', s_filename))
+
+    # load input
+    input = IntrinsicInput.from_file(
+        image_filename,
+        image_is_srgb=sRGB,
+        mask_filename=mask_filename,
+        judgements_filename=judgements_filename,
+    )
+
+    print(('mask_nnz: %s' % input.mask_nnz))
+    print(('rows * cols: %s' % (input.rows * input.cols)))
+
+    # load parameters
+    if parameters_filename:
+        params = IntrinsicParameters.from_file(parameters_filename)
+    else:
+        params = IntrinsicParameters()
+
+    params.logging = not args.quiet
+
+    # solve
+    solver = IntrinsicSolver(input, params)
+    r, s, decomposition = solver.solve()
+
+    # save output
+    image_util.save(r_filename, r, mask_nz=input.mask_nz, rescale=True, srgb=sRGB)
+    image_util.save(s_filename, s, mask_nz=input.mask_nz, rescale=True, srgb=sRGB)
+    if args.show_labels:
+        labels_vis = decomposition.get_labels_visualization()
+        r_path, r_ext = os.path.splitext(r_filename)
+        image_util.save('%s_labels%s' % (r_path, r_ext), labels_vis, mask_nz=solver.input.mask_nz, rescale=True)
+
+    # compute error
+    if judgements_filename:
+        print(('WHDR: %.1f%%' % (input.compute_whdr(r) * 100.0)))
